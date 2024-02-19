@@ -4,39 +4,21 @@
 #include <map>
 #include <string>
 
-typedef DWORD(CALLBACK* GetFileVersionInfoSizeExA2)(DWORD, LPCSTR, LPDWORD);
-typedef DWORD(CALLBACK* GetFileVersionInfoExA2)(DWORD, LPCSTR, DWORD, DWORD, LPVOID);
-typedef DWORD(CALLBACK* VerQueryValueA2)(LPCVOID, LPCSTR, LPVOID*, PUINT);
-
 struct FileVersion
 {
   static bool PrintFileVersionInfo(LPCSTR filename)
   {
-    //This bullshit of not having the static libraries has been going on for too long
-    HINSTANCE hInst = LoadLibrary("Version.dll");
-    if (hInst == NULL) return false;
-    FARPROC _GetFileVersionInfoSizeExA2Address = GetProcAddress(hInst, "GetFileVersionInfoSizeExA");
-    FARPROC _GetFileVersionInfoExA2Address = GetProcAddress(hInst, "GetFileVersionInfoExA");
-    FARPROC _VerQueryValueA2Address = GetProcAddress(hInst, "VerQueryValueA");
-    if (_GetFileVersionInfoSizeExA2Address == NULL) return false;
-    if (_GetFileVersionInfoExA2Address == NULL) return false;
-    if (_VerQueryValueA2Address == NULL) return false;
-    GetFileVersionInfoSizeExA2 GetFileVersionInfoSizeExA_ = (GetFileVersionInfoSizeExA2)_GetFileVersionInfoSizeExA2Address;
-    GetFileVersionInfoExA2 GetFileVersionInfoExA_ = (GetFileVersionInfoExA2)_GetFileVersionInfoExA2Address;
-    VerQueryValueA2 VerQueryValueA_ = (VerQueryValueA2)_VerQueryValueA2Address;
-
-    DWORD flags = FILE_VER_GET_NEUTRAL | FILE_VER_GET_LOCALISED;
     DWORD handle = 0;
-    DWORD size = GetFileVersionInfoSizeExA_(flags, filename, &handle);
+    DWORD size = GetFileVersionInfoSizeA(filename, &handle);
     if (size == 0)
     {
-      printf("GetFileVersionInfoSizeExA returned a size of 0\n");
+      printf("GetFileVersionInfoSizeA returned a size of 0\n");
       return false;
     }
     LPVOID pVersionInfo = new BYTE[size];
-    if (!GetFileVersionInfoExA_(flags, filename, NULL, size, pVersionInfo))
+    if (!GetFileVersionInfoA(filename, NULL, size, pVersionInfo))
     {
-      printf("GetFileVersionInfoExA returned false\n");
+      printf("GetFileVersionInfoA returned false\n");
       return false;
     }
 
@@ -46,7 +28,7 @@ struct FileVersion
       WORD wCodePage;
     } *lpTranslate;
 
-    if (!VerQueryValueA_(pVersionInfo, "\\VarFileInfo\\Translation", (LPVOID*)&lpTranslate, &puLen2))
+    if (!VerQueryValueA(pVersionInfo, "\\VarFileInfo\\Translation", (LPVOID*)&lpTranslate, &puLen2))
     {
       printf("VerQueryValueA returned false\n");
       return false;
@@ -66,7 +48,7 @@ struct FileVersion
         lpTranslate->wCodePage,
         descriptions[i].c_str());
       LPCSTR lpBuffer;
-      if (!VerQueryValueA_(pVersionInfo, buffer, (LPVOID*)&lpBuffer, &puLen))
+      if (!VerQueryValueA(pVersionInfo, buffer, (LPVOID*)&lpBuffer, &puLen))
       {
         printf("VerQueryValueA returned false\n");
         return false;
