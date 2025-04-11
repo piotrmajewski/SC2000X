@@ -29,7 +29,7 @@ bool Patcher::Patch(std::string fname, std::vector<Instructions> ins)
       ++bytes_written;
     }
   }
-  printf("Total bytes patches: %u\n", bytes_written);
+  printf("Total bytes patches: %zu\n", bytes_written);
   fclose(efile);
   return true;
 }
@@ -65,8 +65,14 @@ bool Patcher::GetSectionInfo(const char* filepath, PEINFO& info)
   }
 
   PIMAGE_FILE_HEADER FH = (PIMAGE_FILE_HEADER)(pByte + dos->e_lfanew + sizeof(DWORD));
-  PIMAGE_OPTIONAL_HEADER OH = (PIMAGE_OPTIONAL_HEADER)(pByte + dos->e_lfanew + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER));
-  PIMAGE_SECTION_HEADER SH = (PIMAGE_SECTION_HEADER)(pByte + dos->e_lfanew + sizeof(IMAGE_NT_HEADERS));
+  if (FH->Machine != IMAGE_FILE_MACHINE_I386)
+  {
+      printf("Only the Intel x86 architecture is supported\n");
+      return false;
+  }
+
+  PIMAGE_OPTIONAL_HEADER32 OH = (PIMAGE_OPTIONAL_HEADER32)(pByte + dos->e_lfanew + sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER));
+  PIMAGE_SECTION_HEADER SH = (PIMAGE_SECTION_HEADER)(pByte + dos->e_lfanew + sizeof(IMAGE_NT_HEADERS32));
   for (WORD i = 0; i < FH->NumberOfSections; ++i)
   {
     std::string name(reinterpret_cast<char const*>(SH[i].Name));
